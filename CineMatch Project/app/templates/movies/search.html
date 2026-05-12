@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Search — CineMatch{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Search Movies</h2>
+
+<form method="GET" action="{{ url_for('movies.search') }}" class="mb-4">
+    <div class="input-group">
+        <input type="text" class="form-control form-control-lg"
+               name="q" value="{{ q }}" placeholder="Search by title or genre…" autofocus>
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+
+{% if q %}
+    <p class="text-muted mb-3">
+        {% if results %}
+            {{ results|length }} result{{ 's' if results|length != 1 }} for
+            "<strong>{{ q }}</strong>"
+        {% else %}
+            No results found for "<strong>{{ q }}</strong>"
+        {% endif %}
+    </p>
+{% endif %}
+
+{% if results %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+    {% for movie in results %}
+    <div class="col">
+        <div class="card h-100 shadow-sm">
+            {% if movie.poster_url %}
+            <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }}"
+                 style="height:200px;object-fit:cover;">
+            {% else %}
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
+                 style="height:200px;font-size:3rem;">🎬</div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+                <h6 class="card-title mb-1">{{ movie.title }}</h6>
+                <div class="mb-2">
+                    <span class="badge bg-primary">{{ movie.genre }}</span>
+                    <span class="text-muted small ms-1">{{ movie.year }}</span>
+                </div>
+                <div class="mt-auto">
+                    {% if movie.avg_rating %}
+                    <span class="text-warning">★</span>
+                    <span class="fw-semibold">{{ '%.1f'|format(movie.avg_rating) }}</span>
+                    {% else %}
+                    <span class="text-muted small">Not rated yet</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('movies.detail', id=movie.id) }}"
+                   class="btn btn-sm btn-outline-primary w-100">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% elif q %}
+<div class="text-center py-4 text-muted">
+    <p>Try a different title or genre.</p>
+    <a href="{{ url_for('movies.catalog') }}" class="btn btn-outline-secondary">Browse All Movies</a>
+</div>
+{% endif %}
+{% endblock %}
