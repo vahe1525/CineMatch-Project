@@ -22,13 +22,42 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="app\models.py" />
+    <Compile Include="app\routes\auth.py" />
+    <Compile Include="app\routes\dashboard.py" />
+    <Compile Include="app\routes\movies.py" />
+    <Compile Include="app\routes\__init__.py" />
     <Compile Include="app\__init__.py" />
+    <Compile Include="migrations\env.py" />
+    <Compile Include="migrations\versions\0da335019721_initial_schema.py" />
     <Compile Include="run.py" />
     <Compile Include="config.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="app\" />
+    <Folder Include="app\routes\" />
+    <Folder Include="app\routes\__pycache__\" />
+    <Folder Include="app\__pycache__\" />
+    <Folder Include="instance\" />
+    <Folder Include="migrations\" />
+    <Folder Include="migrations\versions\" />
+    <Folder Include="migrations\versions\__pycache__\" />
+    <Folder Include="migrations\__pycache__\" />
     <Folder Include="ml_service\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="app\routes\__pycache__\auth.cpython-312.pyc" />
+    <Content Include="app\routes\__pycache__\dashboard.cpython-312.pyc" />
+    <Content Include="app\routes\__pycache__\movies.cpython-312.pyc" />
+    <Content Include="app\routes\__pycache__\__init__.cpython-312.pyc" />
+    <Content Include="app\__pycache__\models.cpython-312.pyc" />
+    <Content Include="app\__pycache__\__init__.cpython-312.pyc" />
+    <Content Include="instance\cinematch.db" />
+    <Content Include="migrations\alembic.ini" />
+    <Content Include="migrations\README" />
+    <Content Include="migrations\script.py.mako" />
+    <Content Include="migrations\versions\__pycache__\0da335019721_initial_schema.cpython-312.pyc" />
+    <Content Include="migrations\__pycache__\env.cpython-312.pyc" />
+    <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
