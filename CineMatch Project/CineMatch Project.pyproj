@@ -31,6 +31,7 @@
     <Compile Include="migrations\versions\0da335019721_initial_schema.py" />
     <Compile Include="run.py" />
     <Compile Include="config.py" />
+    <Compile Include="seed.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="app\" />
@@ -43,6 +44,7 @@
     <Folder Include="migrations\versions\__pycache__\" />
     <Folder Include="migrations\__pycache__\" />
     <Folder Include="ml_service\" />
+    <Folder Include="__pycache__\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="app\routes\__pycache__\auth.cpython-312.pyc" />
@@ -58,6 +60,8 @@
     <Content Include="migrations\versions\__pycache__\0da335019721_initial_schema.cpython-312.pyc" />
     <Content Include="migrations\__pycache__\env.cpython-312.pyc" />
     <Content Include="requirements.txt" />
+    <Content Include="__pycache__\config.cpython-312.pyc" />
+    <Content Include="__pycache__\run.cpython-312.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
