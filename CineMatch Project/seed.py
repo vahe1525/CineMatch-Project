@@ -1,7 +1,9 @@
 """
-Seed script — run once from the project root:
+Seed script — run from the project root:
     python seed.py
-Idempotent: skips if movies already exist.
+
+Fully idempotent: safe to re-run. Adds movies, users, ratings if missing.
+Phase 6 extension adds user6-user8 and tops up movies to >= 3 ratings each.
 """
 import os
 import sys
@@ -117,76 +119,101 @@ MOVIES = [
 
 USERS = [
     {'username': f'user{i}', 'email': f'user{i}@cinematch.dev', 'password': 'password123'}
-    for i in range(1, 6)
+    for i in range(1, 9)   # user1 through user8
 ]
 
 
 def seed():
     app = create_app()
     with app.app_context():
-        if Movie.query.first():
-            print('Movies already exist — skipping seed.')
-            return
+        from sqlalchemy import func
 
-        print('Seeding movies…')
+        # ── Movies ──────────────────────────────────────────────────────────
+        print('Ensuring movies...')
         movies = []
+        movies_added = 0
         for data in MOVIES:
-            m = Movie(
-                title=data['title'],
-                genre=data['genre'],
-                year=data['year'],
-                director=data['director'],
-                description=data['description'],
-                poster_url='',
-                avg_rating=0.0,
-            )
-            db.session.add(m)
+            m = Movie.query.filter_by(title=data['title']).first()
+            if not m:
+                m = Movie(
+                    title=data['title'],
+                    genre=data['genre'],
+                    year=data['year'],
+                    director=data['director'],
+                    description=data['description'],
+                    poster_url='',
+                    avg_rating=0.0,
+                )
+                db.session.add(m)
+                movies_added += 1
             movies.append(m)
         db.session.commit()
-        print(f'  {len(movies)} movies added.')
+        print(f'  {movies_added} new movies added ({len(movies)} total).')
 
-        print('Seeding users…')
-        users = []
+        # ── Users ────────────────────────────────────────────────────────────
+        print('Ensuring users...')
+        users_added = 0
+        all_users = []
         for data in USERS:
-            if User.query.filter_by(email=data['email']).first():
+            u = User.query.filter_by(email=data['email']).first()
+            if not u:
+                pw_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+                u = User(username=data['username'],
+                         email=data['email'],
+                         password_hash=pw_hash)
+                db.session.add(u)
+                users_added += 1
+            all_users.append(u)
+        db.session.commit()
+        print(f'  {users_added} new users added ({len(all_users)} total).')
+
+        # ── Ratings for each user ─────────────────────────────────────────
+        print('Adding ratings...')
+        ratings_added = 0
+        for u in all_users:
+            already_rated = {r.movie_id for r in Rating.query.filter_by(user_id=u.id).all()}
+            unrated = [m for m in movies if m.id not in already_rated]
+            if not unrated:
                 continue
-            pw_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-            u = User(username=data['username'], email=data['email'], password_hash=pw_hash)
-            db.session.add(u)
-            users.append(u)
-        db.session.commit()
-        print(f'  {len(users)} users added.')
-
-        print('Seeding ratings and events…')
-        from sqlalchemy import func
-        rating_count = 0
-        for user in users:
-            sample = random.sample(movies, k=random.randint(8, 12))
-            for movie in sample:
+            n = min(random.randint(10, 15), len(unrated))
+            for m in random.sample(unrated, n):
                 score = random.randint(1, 5)
-                db.session.add(Rating(user_id=user.id, movie_id=movie.id, score=score))
-                db.session.add(EventLog(
-                    user_id=user.id,
-                    event_type='user.rated',
-                    payload={'movie_id': movie.id, 'score': score},
-                ))
-                rating_count += 1
+                db.session.add(Rating(user_id=u.id, movie_id=m.id, score=score))
+                ratings_added += 1
         db.session.commit()
+        print(f'  {ratings_added} new ratings added.')
 
-        print('Recalculating avg_rating for all movies…')
-        for movie in movies:
+        # ── Ensure every movie has >= 3 ratings ──────────────────────────
+        print('Topping up movies to 3+ ratings...')
+        topped = 0
+        for m in movies:
+            count = Rating.query.filter_by(movie_id=m.id).count()
+            if count >= 3:
+                continue
+            raters = {r.user_id for r in Rating.query.filter_by(movie_id=m.id).all()}
+            candidates = [u for u in all_users if u.id not in raters]
+            needed = 3 - count
+            for u in random.sample(candidates, min(needed, len(candidates))):
+                score = random.randint(3, 5)
+                db.session.add(Rating(user_id=u.id, movie_id=m.id, score=score))
+                topped += 1
+        db.session.commit()
+        if topped:
+            print(f'  {topped} top-up ratings added.')
+
+        # ── Recalculate avg_rating ────────────────────────────────────────
+        print('Recalculating avg_rating for all movies...')
+        for m in movies:
             avg = (db.session.query(func.avg(Rating.score))
-                   .filter(Rating.movie_id == movie.id)
+                   .filter(Rating.movie_id == m.id)
                    .scalar())
-            movie.avg_rating = round(float(avg), 2) if avg else 0.0
+            m.avg_rating = round(float(avg), 2) if avg else 0.0
         db.session.commit()
 
-        event_total = db.session.query(func.count(EventLog.id)).scalar()
         print(f'\nSeed complete:')
         print(f'  Movies  : {Movie.query.count()}')
         print(f'  Users   : {User.query.count()}')
-        print(f'  Ratings : {rating_count}')
-        print(f'  Events  : {event_total}')
+        print(f'  Ratings : {Rating.query.count()}')
 
 
 if __name__ == '__main__':

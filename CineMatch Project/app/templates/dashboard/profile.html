@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ current_user.username }}'s Profile — CineMatch{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <div style="width:56px;height:56px;border-radius:50%;background:#6c757d;color:#fff;
+                display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;">
+        {{ current_user.username[:2]|upper }}
+    </div>
+    <div>
+        <h2 class="mb-0">{{ current_user.username }}</h2>
+        <small class="text-muted">{{ current_user.email }}</small>
+    </div>
+</div>
+
+{# Stats row #}
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card text-center shadow-sm border-0 py-3">
+            <div class="fs-2 fw-bold text-primary">{{ all_ratings|length }}</div>
+            <div class="text-muted small">Movies Rated</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center shadow-sm border-0 py-3">
+            <div class="fs-2 fw-bold text-warning">
+                {% if avg_score %}{{ avg_score }}{% else %}—{% endif %}
+            </div>
+            <div class="text-muted small">Avg Score</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center shadow-sm border-0 py-3">
+            <div class="fs-2 fw-bold text-success">{{ watchlist_count }}</div>
+            <div class="text-muted small">Watchlist Items</div>
+        </div>
+    </div>
+</div>
+
+{# Full rating history #}
+<div class="card shadow-sm border-0">
+    <div class="card-header fw-semibold border-0 bg-white">
+        Full Rating History
+    </div>
+    <div class="card-body p-0">
+        {% if all_ratings %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Movie</th>
+                        <th>Genre</th>
+                        <th>Year</th>
+                        <th>Your Rating</th>
+                        <th class="text-muted small">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in all_ratings %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('movies.detail', id=r.movie_id) }}"
+                               class="text-decoration-none fw-semibold">
+                                {{ r.movie.title }}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-primary">{{ r.movie.genre }}</span></td>
+                        <td class="text-muted">{{ r.movie.year }}</td>
+                        <td>
+                            {% for i in range(1, 6) %}
+                                {% if r.score >= i %}
+                                <span class="star-on">&#9733;</span>
+                                {% else %}
+                                <span class="star-off">&#9733;</span>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="text-muted small ms-1">{{ r.score }}/5</span>
+                        </td>
+                        <td class="text-muted small">{{ r.rated_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <p class="mb-2">No ratings yet.</p>
+            <a href="{{ url_for('movies.catalog') }}" class="btn btn-sm btn-primary">Browse Movies</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('dashboard.index') }}" class="text-muted small">&larr; Back to Dashboard</a>
+</div>
+{% endblock %}

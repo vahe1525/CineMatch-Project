@@ -3,63 +3,116 @@
 {% block title %}Dashboard — CineMatch{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Welcome back, {{ current_user.username }}!</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Welcome back, <strong>{{ current_user.username }}</strong>!</h2>
+        <small class="text-muted">Here's what we think you'll love</small>
+    </div>
+    <a href="{{ url_for('dashboard.profile') }}" class="btn btn-outline-secondary btn-sm">
+        View Full History
+    </a>
+</div>
 
+{# ── Section 1: Recommendations ───────────────────────────────────────── #}
+<section class="mb-5">
+    <h4 class="mb-3">&#10024; Recommended for You</h4>
+    {% if recommendations %}
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+        {% for rec in recommendations %}
+        <div class="col">
+            <a href="{{ url_for('movies.detail', id=rec.movie_id) }}"
+               class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm border-0 rec-card">
+                    {% if rec.movie.poster_url %}
+                    <img src="{{ rec.movie.poster_url }}" class="card-img-top"
+                         alt="{{ rec.movie.title }}" style="height:160px;object-fit:cover;">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center bg-secondary text-white"
+                         style="height:160px;font-size:2.5rem;">&#127916;</div>
+                    {% endif %}
+                    <div class="card-body p-2">
+                        <p class="card-title fw-semibold mb-1 small lh-sm">{{ rec.movie.title }}</p>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-secondary" style="font-size:0.65rem;">{{ rec.movie.genre }}</span>
+                            <span class="text-muted" style="font-size:0.7rem;">{{ rec.movie.year }}</span>
+                        </div>
+                        {% if rec.movie.avg_rating %}
+                        <div style="font-size:0.8rem;">
+                            {% for i in range(1, 6) %}
+                                {% if rec.movie.avg_rating >= i - 0.5 %}
+                                <span class="star-on">&#9733;</span>
+                                {% else %}
+                                <span class="star-off">&#9733;</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 bg-white rounded shadow-sm">
+        <div style="font-size:3rem;">&#127916;</div>
+        <h5 class="mt-3">No recommendations yet</h5>
+        <p class="text-muted mb-3">Rate some movies and our ML engine will suggest new ones for you.</p>
+        <a href="{{ url_for('movies.catalog') }}" class="btn btn-primary">Browse Movies</a>
+    </div>
+    {% endif %}
+</section>
+
+{# ── Sections 2 + 3 side by side ─────────────────────────────────────── #}
 <div class="row g-4">
 
-    {# Section 1: Recommendations #}
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white fw-semibold">
-                ✨ Recommended for You
-            </div>
-            <div class="card-body p-0">
-                {% if recommendations %}
-                <ul class="list-group list-group-flush">
-                    {% for rec in recommendations %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('movies.detail', id=rec.movie_id) }}"
-                           class="text-decoration-none text-dark">{{ rec.movie.title }}</a>
-                        <span class="badge bg-primary rounded-pill">{{ '%.2f'|format(rec.score) }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="p-4 text-muted text-center">
-                    <p>No recommendations yet.</p>
-                    <small>Rate some movies and the ML engine will suggest new ones.</small>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
     {# Section 2: Recently Rated #}
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header bg-warning text-dark fw-semibold">
-                ⭐ Recently Rated
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header fw-semibold border-0"
+                 style="background:rgba(255,193,7,0.15);">
+                &#11088; Continue Watching — Recently Rated
             </div>
             <div class="card-body p-0">
                 {% if recent_ratings %}
                 <ul class="list-group list-group-flush">
                     {% for r in recent_ratings %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                        {% if r.movie.poster_url %}
+                        <img src="{{ r.movie.poster_url }}" alt=""
+                             style="width:48px;height:64px;object-fit:cover;border-radius:4px;flex-shrink:0;">
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
+                             style="width:48px;height:64px;font-size:1.4rem;flex-shrink:0;">&#127916;</div>
+                        {% endif %}
+                        <div class="flex-grow-1 overflow-hidden">
+                            <a href="{{ url_for('movies.detail', id=r.movie_id) }}"
+                               class="text-decoration-none text-dark fw-semibold d-block text-truncate">
+                                {{ r.movie.title }}
+                            </a>
+                            <div>
+                                {% for i in range(1, 6) %}
+                                    {% if r.score >= i %}
+                                    <span class="star-on">&#9733;</span>
+                                    {% else %}
+                                    <span class="star-off">&#9733;</span>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="text-muted small ms-1">
+                                    {{ r.rated_at.strftime('%b %d, %Y') }}
+                                </span>
+                            </div>
+                        </div>
                         <a href="{{ url_for('movies.detail', id=r.movie_id) }}"
-                           class="text-decoration-none text-dark">{{ r.movie.title }}</a>
-                        <span class="text-warning fw-bold">
-                            {% for _ in range(r.score) %}★{% endfor %}
-                            {% for _ in range(5 - r.score) %}<span class="text-muted">★</span>{% endfor %}
-                        </span>
+                           class="btn btn-sm btn-outline-secondary flex-shrink-0">View</a>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
                 <div class="p-4 text-muted text-center">
-                    <p>No ratings yet.</p>
-                    <a href="{{ url_for('movies.catalog') }}" class="btn btn-sm btn-outline-warning mt-1">
-                        Browse Movies
-                    </a>
+                    <p class="mb-2">You haven't rated any movies yet.</p>
+                    <a href="{{ url_for('movies.catalog') }}"
+                       class="btn btn-sm btn-outline-warning">Browse Movies</a>
                 </div>
                 {% endif %}
             </div>
@@ -67,30 +120,48 @@
     </div>
 
     {# Section 3: Watchlist #}
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header bg-success text-white fw-semibold">
-                🎬 My Watchlist
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header fw-semibold border-0"
+                 style="background:rgba(25,135,84,0.12);">
+                &#127916; My Watchlist
             </div>
             <div class="card-body p-0">
                 {% if watchlist %}
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush" id="watchlistItems">
                     {% for item in watchlist %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('movies.detail', id=item.movie_id) }}"
-                           class="text-decoration-none text-dark">{{ item.movie.title }}</a>
-                        <small class="text-muted">
-                            {{ item.added_at.strftime('%b %d') }}
-                        </small>
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3"
+                        id="wl-{{ item.movie_id }}">
+                        {% if item.movie.poster_url %}
+                        <img src="{{ item.movie.poster_url }}" alt=""
+                             style="width:48px;height:64px;object-fit:cover;border-radius:4px;flex-shrink:0;">
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
+                             style="width:48px;height:64px;font-size:1.4rem;flex-shrink:0;">&#127916;</div>
+                        {% endif %}
+                        <div class="flex-grow-1 overflow-hidden">
+                            <a href="{{ url_for('movies.detail', id=item.movie_id) }}"
+                               class="text-decoration-none text-dark fw-semibold d-block text-truncate">
+                                {{ item.movie.title }}
+                            </a>
+                            <small class="text-muted">
+                                Added {{ item.added_at.strftime('%b %d, %Y') }}
+                            </small>
+                        </div>
+                        <div class="d-flex flex-column gap-1 flex-shrink-0">
+                            <a href="{{ url_for('movies.detail', id=item.movie_id) }}"
+                               class="btn btn-sm btn-outline-primary">View</a>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    onclick="removeWatchlist({{ item.movie_id }})">Remove</button>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
                 <div class="p-4 text-muted text-center">
-                    <p>Your watchlist is empty.</p>
-                    <a href="{{ url_for('movies.catalog') }}" class="btn btn-sm btn-outline-success mt-1">
-                        Browse Movies
-                    </a>
+                    <p class="mb-2">Your watchlist is empty.</p>
+                    <a href="{{ url_for('movies.catalog') }}"
+                       class="btn btn-sm btn-outline-success">Browse Movies</a>
                 </div>
                 {% endif %}
             </div>
@@ -98,4 +169,27 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function removeWatchlist(movieId) {
+    fetch(`/dashboard/watchlist/${movieId}/remove`, {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const el = document.getElementById('wl-' + movieId);
+                if (el) {
+                    el.style.transition = 'opacity 0.3s';
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 300);
+                }
+            }
+        });
+}
+</script>
+<style>
+.rec-card { transition: transform 0.2s, box-shadow 0.2s; }
+.rec-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,.15) !important; }
+</style>
 {% endblock %}

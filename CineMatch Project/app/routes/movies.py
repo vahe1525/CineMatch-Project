@@ -17,9 +17,21 @@ def catalog():
     pagination = (Movie.query
                   .order_by(Movie.title)
                   .paginate(page=page, per_page=_PER_PAGE, error_out=False))
+
+    # Distinct genres across ALL movies for the filter bar
+    genres = sorted({m.genre for m in Movie.query.with_entities(Movie.genre).all()})
+
+    # Dict of movie_id -> score for the logged-in user (to badge rated cards)
+    user_ratings = {}
+    if current_user.is_authenticated:
+        rows = Rating.query.filter_by(user_id=current_user.id).all()
+        user_ratings = {r.movie_id: r.score for r in rows}
+
     return render_template('movies/catalog.html',
                            movies=pagination.items,
-                           pagination=pagination)
+                           pagination=pagination,
+                           genres=genres,
+                           user_ratings=user_ratings)
 
 
 @movies_bp.route('/search')
@@ -47,10 +59,18 @@ def detail(id):
         user_rating  = Rating.query.filter_by(user_id=current_user.id, movie_id=id).first()
         in_watchlist = Watchlist.query.filter_by(user_id=current_user.id, movie_id=id).first() is not None
         log_event(current_user.id, 'user.clicked', {'movie_id': id})
+
+    similar = (Movie.query
+               .filter(Movie.genre == movie.genre, Movie.id != id)
+               .order_by(Movie.avg_rating.desc())
+               .limit(4)
+               .all())
+
     return render_template('movies/detail.html',
                            movie=movie,
                            user_rating=user_rating,
-                           in_watchlist=in_watchlist)
+                           in_watchlist=in_watchlist,
+                           similar=similar)
 
 
 @movies_bp.route('/<int:id>/rate', methods=['POST'])
@@ -64,7 +84,7 @@ def rate(id):
         return jsonify({'success': False, 'error': 'Invalid score'}), 400
 
     if not 1 <= score <= 5:
-        return jsonify({'success': False, 'error': 'Score must be 1–5'}), 400
+        return jsonify({'success': False, 'error': 'Score must be 1-5'}), 400
 
     existing = Rating.query.filter_by(user_id=current_user.id, movie_id=id).first()
     if existing:
