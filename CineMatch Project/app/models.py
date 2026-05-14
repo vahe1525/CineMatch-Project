@@ -27,13 +27,16 @@ class Movie(db.Model):
     __tablename__ = 'movies'
 
     id          = db.Column(db.Integer, primary_key=True)
+    tmdb_id     = db.Column(db.Integer, unique=True, nullable=True)
     title       = db.Column(db.String(200), nullable=False)
-    genre       = db.Column(db.String(100))          
+    genre       = db.Column(db.String(100))
     year        = db.Column(db.Integer)
     director    = db.Column(db.String(100))
     description = db.Column(db.Text)
     poster_url  = db.Column(db.String(300))
-    avg_rating  = db.Column(db.Float, default=0.0)  
+    avg_rating  = db.Column(db.Float, default=0.0)
+    runtime     = db.Column(db.Integer, nullable=True)
+    cast        = db.Column(db.String(300), nullable=True)
 
     ratings         = db.relationship('Rating', backref='movie', lazy=True)
     watchlist_items = db.relationship('Watchlist', backref='movie', lazy=True)

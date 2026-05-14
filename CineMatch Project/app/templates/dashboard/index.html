@@ -1,195 +1,153 @@
 {% extends 'base.html' %}
-
 {% block title %}Dashboard — CineMatch{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="mb-0">Welcome back, <strong>{{ current_user.username }}</strong>!</h2>
-        <small class="text-muted">Here's what we think you'll love</small>
-    </div>
-    <a href="{{ url_for('dashboard.profile') }}" class="btn btn-outline-secondary btn-sm">
-        View Full History
-    </a>
-</div>
+<div class="dashboard-page page-pad">
 
-{# ── Section 1: Recommendations ───────────────────────────────────────── #}
-<section class="mb-5">
-    <h4 class="mb-3">&#10024; Recommended for You</h4>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:32px;">
+    <div>
+      <h1 style="font-size:1.8rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:2px;">
+        Welcome back, <span style="color:var(--accent);">{{ current_user.username }}</span>
+      </h1>
+      <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">
+        Here's what we think you'll love
+      </p>
+    </div>
+    <a class="btn-outline-cm" href="{{ url_for('dashboard.profile') }}">View Full History</a>
+  </div>
+
+  {# ── Recommendations ──────────────────────────────────────────────── #}
+  <div class="row-section">
+    <div class="row-section-header">
+      <span class="row-title">&#10024; Recommended for You</span>
+      <span class="row-subtitle">ML-powered</span>
+    </div>
     {% if recommendations %}
-    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
-        {% for rec in recommendations %}
-        <div class="col">
-            <a href="{{ url_for('movies.detail', id=rec.movie_id) }}"
-               class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm border-0 rec-card">
-                    {% if rec.movie.poster_url %}
-                    <img src="{{ rec.movie.poster_url }}" class="card-img-top"
-                         alt="{{ rec.movie.title }}" style="height:160px;object-fit:cover;">
-                    {% else %}
-                    <div class="d-flex align-items-center justify-content-center bg-secondary text-white"
-                         style="height:160px;font-size:2.5rem;">&#127916;</div>
-                    {% endif %}
-                    <div class="card-body p-2">
-                        <p class="card-title fw-semibold mb-1 small lh-sm">{{ rec.movie.title }}</p>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="badge bg-secondary" style="font-size:0.65rem;">{{ rec.movie.genre }}</span>
-                            <span class="text-muted" style="font-size:0.7rem;">{{ rec.movie.year }}</span>
-                        </div>
-                        {% if rec.movie.avg_rating %}
-                        <div style="font-size:0.8rem;">
-                            {% for i in range(1, 6) %}
-                                {% if rec.movie.avg_rating >= i - 0.5 %}
-                                <span class="star-on">&#9733;</span>
-                                {% else %}
-                                <span class="star-off">&#9733;</span>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </a>
+    <div class="row-scroll">
+      {% for rec in recommendations %}
+      <a href="{{ url_for('movies.detail', id=rec.movie_id) }}" style="display:contents;">
+        <div class="movie-card">
+          {% if rec.movie.poster_url %}
+          <img class="movie-card-poster" src="{{ rec.movie.poster_url }}"
+               alt="{{ rec.movie.title }}" loading="lazy">
+          {% else %}
+          <div class="movie-card-no-poster">&#127916;</div>
+          {% endif %}
+          <div class="movie-card-overlay">
+            <div class="movie-card-title">{{ rec.movie.title }}</div>
+            <div class="movie-card-genre">
+              {{ rec.movie.genre.split(',')[0].strip() if rec.movie.genre else '' }}
+            </div>
+            {% if rec.movie.avg_rating %}
+            <div class="movie-card-rating">
+              <span class="star">&#9733;</span> {{ '%.1f'|format(rec.movie.avg_rating) }}
+            </div>
+            {% endif %}
+          </div>
         </div>
-        {% endfor %}
+      </a>
+      {% endfor %}
     </div>
     {% else %}
-    <div class="text-center py-5 bg-white rounded shadow-sm">
-        <div style="font-size:3rem;">&#127916;</div>
-        <h5 class="mt-3">No recommendations yet</h5>
-        <p class="text-muted mb-3">Rate some movies and our ML engine will suggest new ones for you.</p>
-        <a href="{{ url_for('movies.catalog') }}" class="btn btn-primary">Browse Movies</a>
+    <div class="empty-state" style="padding:40px 20px;">
+      <div class="icon">&#127916;</div>
+      <h4>No recommendations yet</h4>
+      <p>Rate some movies and our ML engine will find films you'll love.</p>
+      <a class="btn-primary-cm" href="{{ url_for('movies.catalog') }}">Browse Movies</a>
     </div>
     {% endif %}
-</section>
+  </div>
 
-{# ── Sections 2 + 3 side by side ─────────────────────────────────────── #}
-<div class="row g-4">
+  {# ── Recently Rated + Watchlist ───────────────────────────────────── #}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;">
 
-    {# Section 2: Recently Rated #}
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header fw-semibold border-0"
-                 style="background:rgba(255,193,7,0.15);">
-                &#11088; Continue Watching — Recently Rated
+    {# Recently Rated #}
+    <div class="panel">
+      <div class="panel-header">&#11088; Recently Rated</div>
+      {% if recent_ratings %}
+        {% for r in recent_ratings %}
+        <div class="rating-item">
+          {% if r.movie.poster_url %}
+          <img class="rating-thumb" src="{{ r.movie.poster_url }}" alt="">
+          {% else %}
+          <div class="rating-thumb-empty">&#127916;</div>
+          {% endif %}
+          <div style="flex:1;min-width:0;">
+            <a href="{{ url_for('movies.detail', id=r.movie_id) }}"
+               style="font-size:0.875rem;font-weight:700;color:var(--text);
+                      display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ r.movie.title }}
+            </a>
+            <div style="margin-top:3px;display:flex;align-items:center;gap:6px;">
+              <span style="color:#f5c518;font-size:0.75rem;">
+                {% for i in range(r.score) %}&#9733;{% endfor %}
+                {% for i in range(5 - r.score) %}<span style="color:var(--text-dim);">&#9733;</span>{% endfor %}
+              </span>
+              <span style="font-size:0.72rem;color:var(--text-muted);">
+                {{ r.rated_at.strftime('%b %d') }}
+              </span>
             </div>
-            <div class="card-body p-0">
-                {% if recent_ratings %}
-                <ul class="list-group list-group-flush">
-                    {% for r in recent_ratings %}
-                    <li class="list-group-item d-flex align-items-center gap-3 py-3">
-                        {% if r.movie.poster_url %}
-                        <img src="{{ r.movie.poster_url }}" alt=""
-                             style="width:48px;height:64px;object-fit:cover;border-radius:4px;flex-shrink:0;">
-                        {% else %}
-                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
-                             style="width:48px;height:64px;font-size:1.4rem;flex-shrink:0;">&#127916;</div>
-                        {% endif %}
-                        <div class="flex-grow-1 overflow-hidden">
-                            <a href="{{ url_for('movies.detail', id=r.movie_id) }}"
-                               class="text-decoration-none text-dark fw-semibold d-block text-truncate">
-                                {{ r.movie.title }}
-                            </a>
-                            <div>
-                                {% for i in range(1, 6) %}
-                                    {% if r.score >= i %}
-                                    <span class="star-on">&#9733;</span>
-                                    {% else %}
-                                    <span class="star-off">&#9733;</span>
-                                    {% endif %}
-                                {% endfor %}
-                                <span class="text-muted small ms-1">
-                                    {{ r.rated_at.strftime('%b %d, %Y') }}
-                                </span>
-                            </div>
-                        </div>
-                        <a href="{{ url_for('movies.detail', id=r.movie_id) }}"
-                           class="btn btn-sm btn-outline-secondary flex-shrink-0">View</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="p-4 text-muted text-center">
-                    <p class="mb-2">You haven't rated any movies yet.</p>
-                    <a href="{{ url_for('movies.catalog') }}"
-                       class="btn btn-sm btn-outline-warning">Browse Movies</a>
-                </div>
-                {% endif %}
-            </div>
+          </div>
+          <a class="btn-outline-cm" style="padding:5px 12px;font-size:0.75rem;"
+             href="{{ url_for('movies.detail', id=r.movie_id) }}">View</a>
         </div>
+        {% endfor %}
+      {% else %}
+      <div style="padding:32px 20px;text-align:center;color:var(--text-muted);font-size:0.875rem;">
+        <p style="margin-bottom:12px;">No ratings yet.</p>
+        <a class="btn-outline-cm" href="{{ url_for('movies.catalog') }}">Browse Movies</a>
+      </div>
+      {% endif %}
     </div>
 
-    {# Section 3: Watchlist #}
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header fw-semibold border-0"
-                 style="background:rgba(25,135,84,0.12);">
-                &#127916; My Watchlist
-            </div>
-            <div class="card-body p-0">
-                {% if watchlist %}
-                <ul class="list-group list-group-flush" id="watchlistItems">
-                    {% for item in watchlist %}
-                    <li class="list-group-item d-flex align-items-center gap-3 py-3"
-                        id="wl-{{ item.movie_id }}">
-                        {% if item.movie.poster_url %}
-                        <img src="{{ item.movie.poster_url }}" alt=""
-                             style="width:48px;height:64px;object-fit:cover;border-radius:4px;flex-shrink:0;">
-                        {% else %}
-                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
-                             style="width:48px;height:64px;font-size:1.4rem;flex-shrink:0;">&#127916;</div>
-                        {% endif %}
-                        <div class="flex-grow-1 overflow-hidden">
-                            <a href="{{ url_for('movies.detail', id=item.movie_id) }}"
-                               class="text-decoration-none text-dark fw-semibold d-block text-truncate">
-                                {{ item.movie.title }}
-                            </a>
-                            <small class="text-muted">
-                                Added {{ item.added_at.strftime('%b %d, %Y') }}
-                            </small>
-                        </div>
-                        <div class="d-flex flex-column gap-1 flex-shrink-0">
-                            <a href="{{ url_for('movies.detail', id=item.movie_id) }}"
-                               class="btn btn-sm btn-outline-primary">View</a>
-                            <button class="btn btn-sm btn-outline-danger"
-                                    onclick="removeWatchlist({{ item.movie_id }})">Remove</button>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="p-4 text-muted text-center">
-                    <p class="mb-2">Your watchlist is empty.</p>
-                    <a href="{{ url_for('movies.catalog') }}"
-                       class="btn btn-sm btn-outline-success">Browse Movies</a>
-                </div>
-                {% endif %}
-            </div>
+    {# Watchlist #}
+    <div class="panel">
+      <div class="panel-header">&#127916; My List</div>
+      {% if watchlist %}
+      <div id="watchlistItems">
+        {% for item in watchlist %}
+        <div class="wl-item" id="wl-{{ item.movie_id }}">
+          {% if item.movie.poster_url %}
+          <img class="rating-thumb" src="{{ item.movie.poster_url }}" alt="">
+          {% else %}
+          <div class="rating-thumb-empty">&#127916;</div>
+          {% endif %}
+          <div style="flex:1;min-width:0;">
+            <a href="{{ url_for('movies.detail', id=item.movie_id) }}"
+               style="font-size:0.875rem;font-weight:700;color:var(--text);
+                      display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ item.movie.title }}
+            </a>
+            <span style="font-size:0.72rem;color:var(--text-muted);">
+              Added {{ item.added_at.strftime('%b %d') }}
+            </span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+            <a class="btn-outline-cm" style="padding:4px 10px;font-size:0.72rem;"
+               href="{{ url_for('movies.detail', id=item.movie_id) }}">View</a>
+            <button class="btn-danger-cm" onclick="removeWatchlist({{ item.movie_id }})">Remove</button>
+          </div>
         </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding:32px 20px;text-align:center;color:var(--text-muted);font-size:0.875rem;">
+        <p style="margin-bottom:12px;">Your list is empty.</p>
+        <a class="btn-outline-cm" href="{{ url_for('movies.catalog') }}">Find Movies</a>
+      </div>
+      {% endif %}
     </div>
 
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-function removeWatchlist(movieId) {
-    fetch(`/dashboard/watchlist/${movieId}/remove`, {method: 'POST'})
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                const el = document.getElementById('wl-' + movieId);
-                if (el) {
-                    el.style.transition = 'opacity 0.3s';
-                    el.style.opacity = '0';
-                    setTimeout(() => el.remove(), 300);
-                }
-            }
-        });
-}
-</script>
 <style>
-.rec-card { transition: transform 0.2s, box-shadow 0.2s; }
-.rec-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,.15) !important; }
+@media (max-width: 700px) {
+  div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
 </style>
 {% endblock %}

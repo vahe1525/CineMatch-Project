@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% block title %}CineMatch — Discover Your Next Favorite Film{% endblock %}
+
+{% block content %}
+
+{# ══════════════════════════════════════════════════════════════════
+   HERO — shown for returning users (with featured movie) and anonymous
+   ══════════════════════════════════════════════════════════════════ #}
+{% if featured %}
+<div class="hero">
+  <div class="hero-bg" style="background-image:url('{{ featured.poster_url }}');"></div>
+  <div class="hero-gradient"></div>
+  <div class="hero-content">
+    <div class="hero-badge">&#9733; Featured Film</div>
+    <h1 class="hero-title">{{ featured.title }}</h1>
+    <div class="hero-meta">
+      {% if featured.genre %}
+      <span class="rating-pill">{{ featured.genre.split(',')[0].strip() }}</span>
+      {% endif %}
+      {% if featured.year %}<span>{{ featured.year }}</span>{% endif %}
+      {% if featured.avg_rating %}
+      <span>&#9733; {{ '%.1f'|format(featured.avg_rating) }}/5</span>
+      {% endif %}
+    </div>
+    {% if featured.description %}
+    <p class="hero-desc">{{ featured.description }}</p>
+    {% endif %}
+    <div class="hero-actions">
+      <a class="btn-hero primary" href="{{ url_for('movies.detail', id=featured.id) }}">
+        &#9654; View Details
+      </a>
+      {% if current_user.is_authenticated %}
+      <button class="btn-hero secondary" onclick="heroWatchlist({{ featured.id }})">
+        + My List
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
+{# Minimal hero for users with no poster data #}
+<div style="padding:120px 4% 40px; background:linear-gradient(180deg,#111 0%,var(--bg) 100%);">
+  <h1 style="font-size:clamp(2rem,6vw,4rem);font-weight:900;letter-spacing:-0.04em;max-width:600px;">
+    Find your next<br><span style="color:var(--accent);">obsession.</span>
+  </h1>
+  <p style="color:var(--text-muted);font-size:1.05rem;margin:16px 0 28px;max-width:500px;">
+    Rate movies you love. Get recommendations tuned to your taste.
+  </p>
+  {% if not current_user.is_authenticated %}
+  <a class="btn-hero primary" href="{{ url_for('auth.register') }}">Get Started Free</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="content-area">
+
+{# ══════════════════════════════════════════════════════════════════
+   ONBOARDING — new users only
+   ══════════════════════════════════════════════════════════════════ #}
+{% if mode == 'new_user' and onboarding %}
+<div class="onboarding-section">
+  <h2 class="onboarding-title">Tell us what you like</h2>
+  <p class="onboarding-sub">Rate a few movies to unlock personalized picks. The more you rate, the smarter we get.</p>
+  <form id="onboardingForm">
+    <div class="onboarding-grid">
+      {% for m in onboarding %}
+      <div class="onboarding-card">
+        {% if m.poster_url %}
+        <img src="{{ m.poster_url }}" alt="{{ m.title }}" loading="lazy">
+        {% else %}
+        <div style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);font-size:2.5rem;color:var(--text-dim);">&#127916;</div>
+        {% endif %}
+        <div class="onboarding-card-body">
+          <div class="onboarding-card-title" title="{{ m.title }}">{{ m.title }}</div>
+          <div class="star-inline" data-movie-id="{{ m.id }}">
+            {% for i in range(5) %}
+            <span class="s" data-score="{{ i+1 }}">&#9733;</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn-onboarding-submit" id="onboardingSubmit" disabled>
+      Rate at least 1 movie
+    </button>
+  </form>
+</div>
+{% endif %}
+
+{# ══════════════════════════════════════════════════════════════════
+   RETURNING USER ROWS
+   ══════════════════════════════════════════════════════════════════ #}
+{% if mode == 'returning' %}
+
+  {# ── Recommended for You ─────────────────────────────────────── #}
+  {% if recommendations %}
+  <div class="row-section">
+    <div class="row-section-header">
+      <span class="row-title">Recommended for You</span>
+      <span class="row-subtitle">&#10024; Powered by ML</span>
+    </div>
+    <div class="row-scroll">
+      {% for rec in recommendations %}
+      {% set m = rec.movie if rec.movie is defined else rec %}
+      <a href="{{ url_for('movies.detail', id=m.id) }}" style="display:contents;">
+        <div class="movie-card">
+          {% if m.poster_url %}
+          <img class="movie-card-poster" src="{{ m.poster_url }}" alt="{{ m.title }}" loading="lazy">
+          {% else %}
+          <div class="movie-card-no-poster">&#127916;</div>
+          {% endif %}
+          <div class="movie-card-overlay">
+            <div class="movie-card-title">{{ m.title }}</div>
+            <div class="movie-card-genre">{{ m.genre.split(',')[0].strip() if m.genre else '' }}</div>
+            {% if m.avg_rating %}
+            <div class="movie-card-rating">
+              <span class="star">&#9733;</span>
+              {{ '%.1f'|format(m.avg_rating) }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Because you liked … ────────────────────────────────────── #}
+  {% if because_movies %}
+  <div class="row-section">
+    <div class="row-section-header">
+      <span class="row-title">Because you liked <em style="color:var(--accent);">{{ because_label }}</em></span>
+    </div>
+    <div class="row-scroll">
+      {% for m in because_movies %}
+      <a href="{{ url_for('movies.detail', id=m.id) }}" style="display:contents;">
+        <div class="movie-card">
+          {% if m.poster_url %}
+          <img class="movie-card-poster" src="{{ m.poster_url }}" alt="{{ m.title }}" loading="lazy">
+          {% else %}
+          <div class="movie-card-no-poster">&#127916;</div>
+          {% endif %}
+          <div class="movie-card-overlay">
+            <div class="movie-card-title">{{ m.title }}</div>
+            <div class="movie-card-genre">{{ m.genre.split(',')[0].strip() if m.genre else '' }}</div>
+            {% if m.avg_rating %}
+            <div class="movie-card-rating">
+              <span class="star">&#9733;</span> {{ '%.1f'|format(m.avg_rating) }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+{% endif %}{# end returning #}
+
+{# ══════════════════════════════════════════════════════════════════
+   TOP RATED — shown to all
+   ══════════════════════════════════════════════════════════════════ #}
+{% if top_rated %}
+<div class="row-section">
+  <div class="row-section-header">
+    <span class="row-title">
+      {% if mode == 'returning' %}Top Rated{% else %}Popular Right Now{% endif %}
+    </span>
+  </div>
+  <div class="row-scroll">
+    {% for m in top_rated %}
+    <a href="{{ url_for('movies.detail', id=m.id) }}" style="display:contents;">
+      <div class="movie-card">
+        {% if m.poster_url %}
+        <img class="movie-card-poster" src="{{ m.poster_url }}" alt="{{ m.title }}" loading="lazy">
+        {% else %}
+        <div class="movie-card-no-poster">&#127916;</div>
+        {% endif %}
+        <div class="movie-card-overlay">
+          <div class="movie-card-title">{{ m.title }}</div>
+          <div class="movie-card-genre">{{ m.genre.split(',')[0].strip() if m.genre else '' }}</div>
+          {% if m.avg_rating %}
+          <div class="movie-card-rating">
+            <span class="star">&#9733;</span> {{ '%.1f'|format(m.avg_rating) }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ══════════════════════════════════════════════════════════════════
+   GENRE ROWS — anonymous & new users
+   ══════════════════════════════════════════════════════════════════ #}
+{% if popular_by_genre %}
+{% for genre, movies in popular_by_genre.items() %}
+{% if movies %}
+<div class="row-section">
+  <div class="row-section-header">
+    <span class="row-title">{{ genre }}</span>
+  </div>
+  <div class="row-scroll">
+    {% for m in movies %}
+    <a href="{{ url_for('movies.detail', id=m.id) }}" style="display:contents;">
+      <div class="movie-card">
+        {% if m.poster_url %}
+        <img class="movie-card-poster" src="{{ m.poster_url }}" alt="{{ m.title }}" loading="lazy">
+        {% else %}
+        <div class="movie-card-no-poster">&#127916;</div>
+        {% endif %}
+        <div class="movie-card-overlay">
+          <div class="movie-card-title">{{ m.title }}</div>
+          <div class="movie-card-genre">{{ m.genre.split(',')[0].strip() if m.genre else '' }}</div>
+          {% if m.avg_rating %}
+          <div class="movie-card-rating">
+            <span class="star">&#9733;</span> {{ '%.1f'|format(m.avg_rating) }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{# ── CTA for unauthenticated users ────────────────────────────── #}
+{% if not current_user.is_authenticated %}
+<div style="text-align:center;padding:60px 20px;border-top:1px solid var(--border);margin-top:40px;">
+  <h2 style="font-size:1.8rem;font-weight:900;margin-bottom:10px;">
+    Get personalized recommendations
+  </h2>
+  <p style="color:var(--text-muted);margin-bottom:24px;">
+    Create a free account and let our ML engine find movies you'll love.
+  </p>
+  <a class="btn-hero primary" href="{{ url_for('auth.register') }}">
+    Create Free Account
+  </a>
+</div>
+{% endif %}
+
+</div>{# end content-area #}
+{% endblock %}
+
+{% block scripts %}
+{% if current_user.is_authenticated and featured %}
+<script>
+function heroWatchlist(movieId) {
+  fetch(`/movies/${movieId}/watchlist`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) return;
+      const btn = event.currentTarget;
+      btn.innerHTML = data.in_watchlist ? '&#10003; In My List' : '+ My List';
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

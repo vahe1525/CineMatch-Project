@@ -25,10 +25,12 @@ def create_app():
     with app.app_context():
         from app import models  # noqa: F401 — keeps models in Alembic metadata
 
+    from app.routes.main import main_bp
     from app.routes.auth import auth_bp
     from app.routes.movies import movies_bp
     from app.routes.dashboard import dashboard_bp
 
+    app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(movies_bp)
     app.register_blueprint(dashboard_bp)
